@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Сеанс для тебя</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; overflow: hidden; background: #000; font-family: 'Times New Roman', Georgia, serif; color: #d4b896; }
+  .screen { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: #000; }
+  .frame { position: relative; width: 100%; height: 100%; background: radial-gradient(ellipse at center, #3a2c1c 0%, #1a1208 60%, #0a0603 100%); overflow: hidden; display: flex; align-items: center; justify-content: center; animation: frameJitter 0.15s steps(2) infinite; }
+  @keyframes frameJitter { 0% { transform: translate(0,0); } 50% { transform: translate(-0.3px,0.3px); } 100% { transform: translate(0.3px,-0.3px); } }
+  .grain { position: absolute; inset: -50%; width: 200%; height: 200%; pointer-events: none; opacity: 0.18; z-index: 100; background-image: repeating-radial-gradient(circle at 20% 30%, rgba(255,255,255,0.9) 0.5px, transparent 1px), repeating-radial-gradient(circle at 70% 80%, rgba(0,0,0,0.9) 0.5px, transparent 1px); background-size: 4px 4px, 3px 3px; animation: grainMove 0.4s steps(4) infinite; mix-blend-mode: overlay; }
+  @keyframes grainMove { 0% { transform: translate(0,0); } 25% { transform: translate(-3%,2%); } 50% { transform: translate(2%,-3%); } 75% { transform: translate(-2%,-2%); } 100% { transform: translate(3%,3%); } }
+  .flicker { position: absolute; inset: 0; background: #d4b896; pointer-events: none; z-index: 99; opacity: 0; mix-blend-mode: overlay; animation: flickerAnim 0.1s infinite; }
+  @keyframes flickerAnim { 0% { opacity: 0; } 10% { opacity: 0.05; } 20% { opacity: 0; } 30% { opacity: 0.08; } 40% { opacity: 0; } 60% { opacity: 0.03; } 70% { opacity: 0.07; } 80% { opacity: 0; } 100% { opacity: 0.04; } }
+  .scratch { position: absolute; top: 0; bottom: 0; width: 1px; background: rgba(230,210,180,0.35); pointer-events: none; z-index: 98; }
+  .vignette { position: absolute; inset: 0; pointer-events: none; z-index: 97; background: radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.7) 100%); }
+  .film-strip { position: absolute; top: 0; bottom: 0; width: 30px; background: #0a0603; z-index: 95; display: flex; flex-direction: column; justify-content: space-around; padding: 10px 0; }
+  .film-strip.left { left: 0; }
+  .film-strip.right { right: 0; }
+  .film-strip .hole { width: 16px; height: 22px; margin: 0 auto; background: #1a1208; border-radius: 3px; box-shadow: inset 0 0 4px #000; }
+  .content { position: relative; z-index: 10; text-align: center; padding: 40px; max-width: 900px; width: 100%; }
+  #countdown { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; z-index: 50; background: #000; }
+  #countdown .num { font-size: 20rem; color: #d4b896; font-family: 'Times New Roman', serif; font-weight: 100; opacity: 0; text-shadow: 0 0 40px rgba(212,184,150,0.6), 0 0 80px rgba(212,184,150,0.3); }
+  #countdown .num.show { animation: countPulse 0.8s ease-out; }
+  @keyframes countPulse { 0% { opacity: 0; transform: scale(0.5); filter: blur(10px); } 30% { opacity: 1; transform: scale(1); filter: blur(0); } 80% { opacity: 1; transform: scale(1); } 100% { opacity: 0; transform: scale(1.3); filter: blur(6px); } }
+  #titles { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; flex-direction: column; z-index: 40; opacity: 0; transition: opacity 1.5s ease; }
+  #titles.show { opacity: 1; }
+  #titles .main-title { font-size: 4rem; color: #d4b896; letter-spacing: 8px; font-family: 'Times New Roman', serif; font-weight: 300; text-transform: uppercase; text-shadow: 0 0 30px rgba(212,184,150,0.5); opacity: 0; animation: titleAppear 2.5s ease-out forwards; }
+  #titles .subtitle { margin-top: 25px; font-size: 1rem; color: #8a7554; letter-spacing: 10px; text-transform: uppercase; opacity: 0; animation: subtitleAppear 2s ease-out 2s forwards; }
+  @keyframes titleAppear { 0% { opacity: 0; letter-spacing: 30px; filter: blur(8px); } 100% { opacity: 1; letter-spacing: 8px; filter: blur(0); } }
+  @keyframes subtitleAppear { 0% { opacity: 0; letter-spacing: 25px; } 100% { opacity: 1; letter-spacing: 10px; } }
+  #question { opacity: 0; transition: opacity 1.5s ease; }
+  #question.show { opacity: 1; }
+  #question h1 { font-size: 2.4rem; color: #d4b896; font-weight: 300; letter-spacing: 4px; line-height: 1.5; text-shadow: 0 0 25px rgba(212,184,150,0.4); }
+  #question h1 .accent { color: #e8c478; font-style: italic; }
+  #question .deco { margin: 30px auto; width: 200px; height: 1px; background: linear-gradient(90deg, transparent, #d4b896, transparent); position: relative; }
+  #question .deco::before, #question .deco::after { content: '✦'; position: absolute; top: 50%; transform: translateY(-50%); color: #d4b896; font-size: 0.8rem; }
+  #question .deco::before { left: -15px; }
+  #question .deco::after { right: -15px; }
+  .buttons { display: flex; gap: 30px; justify-content: center; flex-wrap: wrap; margin-top: 20px; min-height: 60px; position: relative; }
+  button { font-size: 1.1rem; padding: 14px 42px; border-radius: 0; cursor: pointer; letter-spacing: 4px; text-transform: uppercase; font-family: 'Times New Roman', serif; background: transparent; color: #d4b896; border: 1px solid #d4b896; transition: all 0.4s ease; }
+  #yesBtn:hover { background: #d4b896; color: #1a1208; box-shadow: 0 0 30px rgba(212,184,150,0.5); }
+  #noBtn { color: #6b5c42; border-color: #6b5c42; transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+  #noBtn:hover { color: #8a7554; border-color: #8a7554; }
+  .hidden { display: none !important; }
+  #loveScreen { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; flex-direction: column; opacity: 0; pointer-events: none; transition: opacity 1.2s ease; padding: 40px; text-align: center; }
+  #loveScreen.active { opacity: 1; pointer-events: all; }
+  #loveScreen h2 { font-size: 2.6rem; color: #e8c478; font-weight: 300; letter-spacing: 4px; line-height: 1.5; font-style: italic; text-shadow: 0 0 30px rgba(232,196,120,0.5); }
+  #loveScreen .line { width: 120px; height: 1px; background: #d4b896; margin: 30px auto; opacity: 0; animation: lineGrow 1.5s ease-out 0.5s forwards; }
+  @keyframes lineGrow { 0% { width: 0; opacity: 0; } 100% { width: 120px; opacity: 1; } }
+  #loveScreen p { font-size: 1.1rem; color: #8a7554; letter-spacing: 6px; text-transform: uppercase; margin-top: 10px; }
+
+  /* ===== ЭКРАН С ИМЕНЕМ И ПОЖЕЛАНИЯМИ ===== */
+  #nameScreen {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    flex-direction: column;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 1.5s ease;
+    padding: 60px 40px;
+    text-align: center;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+  #nameScreen.active { opacity: 1; pointer-events: all; }
+
+  /* Прокрутка в стиле старого кино */
+  #nameScreen::-webkit-scrollbar { width: 4px; }
+  #nameScreen::-webkit-scrollbar-track { background: transparent; }
+  #nameScreen::-webkit-scrollbar-thumb { background: rgba(212,184,150,0.3); border-radius: 2px; }
+
+  #nameContainer {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 28px;
+    padding: 40px 20px;
+    width: 100%;
+    min-height: 100%;
+  }
+
+  .big-line {
+    font-size: 2.6rem;
+    font-weight: 300;
+    color: #d4b896;
+    font-family: 'Times New Roman', serif;
+    letter-spacing: 6px;
+    text-transform: uppercase;
+    text-shadow: 0 0 20px rgba(212,184,150,0.6), 0 0 40px rgba(212,184,150,0.3);
+    opacity: 0;
+    transform: translateY(15px);
+    transition: opacity 1.5s ease, transform 1.5s ease;
+    line-height: 1.3;
+  }
+  .big-line.show { opacity: 1; transform: translateY(0); }
+
+  .your-word {
+    font-size: 1rem;
+    color: #e8c478;
+    font-family: 'Times New Roman', serif;
+    letter-spacing: 12px;
+    text-transform: uppercase;
+    font-style: italic;
+    opacity: 0;
+    transform: scale(0.7);
+    transition: opacity 1.3s ease, transform 1.3s ease;
+    text-shadow: 0 0 15px rgba(232,196,120,0.8), 0 0 30px rgba(232,196,120,0.4);
+  }
+  .your-word.show { opacity: 1; transform: scale(1); }
+
+  .fade-out-anim { animation: lineOut 1.2s ease forwards !important; }
+  @keyframes lineOut { 0% { opacity: 1; filter: blur(0); } 100% { opacity: 0; filter: blur(10px); transform: translateY(-10px); } }
+
+  #finalText { margin-top: 60px; font-size: 1rem; color: #8a7554; letter-spacing: 6px; text-transform: uppercase; opacity: 0; transition: opacity 2s ease; max-width: 90%; }
+  #finalText.show { opacity: 1; }
+  #finalText::before, #finalText::after { content: '—'; margin: 0 15px; color: #6b5c42; opacity: 0; transition: opacity 2s ease 1s; }
+  #finalText.show::before, #finalText.show::after { opacity: 1; }
+
+  #theEnd { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; flex-direction: column; background: #000; opacity: 0; pointer-events: none; transition: opacity 2s ease; z-index: 30; }
+  #theEnd.active { opacity: 1; pointer-events: all; }
+  #theEnd .word { font-size: 5rem; color: #d4b896; letter-spacing: 20px; font-family: 'Times New Roman', serif; font-weight: 300; text-transform: uppercase; text-shadow: 0 0 40px rgba(212,184,150,0.6); }
+  #theEnd .after { margin-top: 40px; font-size: 1rem; color: #8a7554; letter-spacing: 8px; text-transform: uppercase; opacity: 0; animation: subtitleAppear 2s ease-out 2s forwards; }
+
+  @media (max-width: 700px) {
+    .film-strip { width: 18px; }
+    .film-strip .hole { width: 10px; height: 14px; }
+    #countdown .num { font-size: 10rem; }
+    #titles .main-title { font-size: 2rem; letter-spacing: 5px; }
+    #titles .subtitle { font-size: 0.75rem; letter-spacing: 6px; }
+    #question h1 { font-size: 1.4rem; letter-spacing: 2px; }
+    button { font-size: 0.85rem; padding: 12px 28px; letter-spacing: 3px; }
+    #loveScreen h2 { font-size: 1.5rem; letter-spacing: 2px; }
+    #loveScreen p { font-size: 0.8rem; letter-spacing: 3px; }
+    .big-line { font-size: 1.3rem; letter-spacing: 3px; }
+    .your-word { font-size: 0.75rem; letter-spacing: 8px; }
+    #finalText { font-size: 0.75rem; letter-spacing: 3px; }
+    #theEnd .word { font-size: 2rem; letter-spacing: 10px; }
+    #theEnd .after { font-size: 0.7rem; letter-spacing: 4px; }
+    #nameContainer { gap: 22px; padding: 30px 15px; }
+    #nameScreen { padding: 40px 20px; }
+  }
+</style>
+</head>
+<body>
+  <div class="screen">
+    <div class="frame" id="frame">
+      <div class="film-strip left" id="stripLeft"></div>
+      <div class="film-strip right" id="stripRight"></div>
+      <div class="vignette"></div>
+      <div class="flicker"></div>
+      <div class="grain"></div>
+      <div class="content">
+        <div id="countdown"><div class="num" id="countNum">3</div></div>
+        <div id="titles">
+          <div class="main-title">Для тебя</div>
+          <div class="subtitle">один короткий сеанс</div>
+        </div>
+        <div id="question">
+          <h1>Любимая, <span class="accent">ты меня любишь?</span></h1>
+          <div class="deco"></div>
+          <div class="buttons">
+            <button id="yesBtn">Да</button>
+            <button id="noBtn">Нет</button>
+          </div>
+        </div>
+        <div id="loveScreen">
+          <h2>Я так и знал.</h2>
+          <div class="line"></div>
+          <p>и я люблю тебя, моя хорошая</p>
+        </div>
+        <div id="nameScreen">
+          <div id="nameContainer"></div>
+          <div id="finalText"></div>
+        </div>
+        <div id="theEnd">
+          <div class="word">Конец</div>
+          <div class="after">и это только начало</div>
+        </div>
+      </div>
+    </div>
+  </div>
+<script>
+  // ============================================
+  //  ⚙️ НАСТРОЙКИ — ТЕКСТЫ
+  // ============================================
+  const CONFIG = {
+    title: "Для тебя",
+    subtitle: "один короткий сеанс",
+
+    question: "Любимая,",
+    questionAccent: "ты меня любишь?",
+
+    loveTitle: "Я так и знал.",
+    loveSubtitle: "и я люблю тебя, моя хорошая",
+
+    name: "ЛЮБИМАЯ",
+
+    yourWord: "ТВОЙ",
+
+    wishes: [
+      "пусть каждый день будет тёплым",
+      "пусть счастье идёт с тобой рядом",
+      "пусть все мечты сбудутся",
+      "пусть улыбка не гаснет никогда",
+      "пусть рядом всегда будут близкие",
+      "пусть сердце будет спокойным",
+    ],
+
+    finalMessage: "и это только начало",
+  };
+  // ============================================
+
+  // ============================================
+  //  ⚙️ ТАЙМИНГИ — ЗАМЕДЛЕНО В 2 РАЗА
+  // ============================================
+  const TIMING = {
+    countdownDuration: 900,      // отсчёт 3,2,1
+    titlesDuration: 3500,        // сколько показывать титры
+    loveDelay: 4000,             // пауза перед именем
+    nameHoldDuration: 4000,      // сколько держать имя перед пожеланиями
+    stepBetweenWishes: 1800,     // пауза между пожеланиями
+    yourToWish: 600,             // пауза от "ТВОЙ" до пожелания
+    firstWishDelay: 600,         // пауза до первого "ТВОЙ"
+    beforeEndDelay: 4000,        // пауза перед "Конец"
+    nameFadeDuration: 1500,      // анимация растворения имени
+  };
+  // ============================================
+
+  function buildFilmStrips() {
+    ['stripLeft', 'stripRight'].forEach(id => {
+      const strip = document.getElementById(id);
+      const holes = Math.floor(window.innerHeight / 35);
+      strip.innerHTML = '';
+      for (let i = 0; i < holes; i++) {
+        const hole = document.createElement('div');
+        hole.className = 'hole';
+        strip.appendChild(hole);
+      }
+    });
+  }
+  buildFilmStrips();
+  window.addEventListener('resize', buildFilmStrips);
+
+  function spawnScratch() {
+    const s = document.createElement('div');
+    s.className = 'scratch';
+    s.style.left = Math.random() * 100 + '%';
+    s.style.opacity = Math.random() * 0.5 + 0.1;
+    document.getElementById('frame').appendChild(s);
+    setTimeout(() => s.remove(), 80 + Math.random() * 150);
+  }
+  setInterval(() => { if (Math.random() < 0.3) spawnScratch(); }, 300);
+
+  const countdown = document.getElementById('countdown');
+  const countNum = document.getElementById('countNum');
+  const titles = document.getElementById('titles');
+  const question = document.getElementById('question');
+  const loveScreen = document.getElementById('loveScreen');
+  const nameScreen = document.getElementById('nameScreen');
+  const nameContainer = document.getElementById('nameContainer');
+  const finalText = document.getElementById('finalText');
+  const theEnd = document.getElementById('theEnd');
+  const yesBtn = document.getElementById('yesBtn');
+  const noBtn = document.getElementById('noBtn');
+
+  // ============ ОТСЧЁТ ============
+  let countValue = 3;
+  function runCountdown() {
+    countNum.textContent = countValue;
+    countNum.classList.remove('show');
+    void countNum.offsetWidth;
+    countNum.classList.add('show');
+    setTimeout(() => {
+      countValue--;
+      if (countValue > 0) { runCountdown(); }
+      else {
+        countNum.textContent = '1';
+        countNum.classList.remove('show');
+        void countNum.offsetWidth;
+        countNum.classList.add('show');
+        setTimeout(() => {
+          countdown.style.transition = 'opacity 0.8s ease';
+          countdown.style.opacity = '0';
+          setTimeout(() => { countdown.classList.add('hidden'); showTitles(); }, 800);
+        }, TIMING.countdownDuration);
+      }
+    }, TIMING.countdownDuration);
+  }
+
+  function showTitles() {
+    titles.classList.add('show');
+    setTimeout(() => {
+      titles.style.transition = 'opacity 1.5s ease';
+      titles.style.opacity = '0';
+      setTimeout(() => { titles.classList.add('hidden'); question.classList.add('show'); }, 1500);
+    }, TIMING.titlesDuration);
+  }
+
+  // ============ "НЕТ" ============
+  let noCount = 0;
+  const noTexts = ["Нет", "Точно?", "Подумай", "Уверена?", "Не уйдёшь"];
+  function moveNoBtn() {
+    const frame = document.getElementById('frame').getBoundingClientRect();
+    const pad = 30;
+    const maxX = frame.width - noBtn.offsetWidth - pad;
+    const maxY = frame.height - noBtn.offsetHeight - pad;
+    noBtn.style.position = 'absolute';
+    noBtn.style.left = Math.random() * maxX + 'px';
+    noBtn.style.top = Math.random() * maxY + 'px';
+    noBtn.textContent = noTexts[Math.min(noCount, noTexts.length - 1)];
+    noCount++;
+  }
+  noBtn.addEventListener('mouseenter', moveNoBtn);
+  noBtn.addEventListener('click', moveNoBtn);
+  noBtn.addEventListener('touchstart', (e) => { e.preventDefault(); moveNoBtn(); });
+
+  // ============ "ДА" ============
+  yesBtn.addEventListener('click', () => {
+    question.classList.remove('show');
+    setTimeout(() => {
+      question.classList.add('hidden');
+      loveScreen.classList.add('active');
+      setTimeout(showNameScreen, TIMING.loveDelay);
+    }, 800);
+  });
+
+  // ============ ЭКРАН С ИМЕНЕМ ============
+  function showNameScreen() {
+    loveScreen.classList.remove('active');
+    setTimeout(() => {
+      nameScreen.classList.add('active');
+
+      nameContainer.innerHTML = '';
+      const nameEl = document.createElement('div');
+      nameEl.className = 'big-line';
+      nameEl.style.fontSize = '6rem';
+      nameEl.style.letterSpacing = '12px';
+      nameEl.textContent = CONFIG.name;
+      nameContainer.appendChild(nameEl);
+      setTimeout(() => nameEl.classList.add('show'), 200);
+
+      setTimeout(() => {
+        startWishes(nameEl);
+      }, TIMING.nameHoldDuration);
+    }, 800);
+  }
+
+  // ============ ПОЖЕЛАНИЯ ПО ОЧЕРЕДИ ============
+  function startWishes(nameEl) {
+    // Растворяем имя
+    nameEl.classList.add('fade-out-anim');
+
+    setTimeout(() => {
+      nameContainer.innerHTML = '';
+
+      // Маленькое имя сверху
+      const smallName = document.createElement('div');
+      smallName.className = 'big-line show';
+      smallName.style.fontSize = '1.4rem';
+      smallName.style.letterSpacing = '10px';
+      smallName.style.opacity = '0.5';
+      smallName.style.marginBottom = '20px';
+      smallName.textContent = CONFIG.name;
+      nameContainer.appendChild(smallName);
+
+      // Пожелания
+      let delay = TIMING.firstWishDelay;
+      const step = TIMING.stepBetweenWishes;
+
+      CONFIG.wishes.forEach((wish) => {
+        // "ТВОЙ"
+        setTimeout(() => {
+          const yourEl = document.createElement('div');
+          yourEl.className = 'your-word';
+          yourEl.textContent = CONFIG.yourWord;
+          nameContainer.appendChild(yourEl);
+          requestAnimationFrame(() => yourEl.classList.add('show'));
+          autoScroll();
+        }, delay);
+
+        // Пожелание
+        setTimeout(() => {
+          const wishEl = document.createElement('div');
+          wishEl.className = 'big-line';
+          wishEl.textContent = wish;
+          nameContainer.appendChild(wishEl);
+          requestAnimationFrame(() => wishEl.classList.add('show'));
+          autoScroll();
+        }, delay + TIMING.yourToWish);
+
+        delay += step;
+      });
+
+      // Финальный текст + "Конец"
+      setTimeout(() => {
+        finalText.textContent = CONFIG.finalMessage;
+        finalText.classList.add('show');
+        autoScroll();
+        setTimeout(showTheEnd, TIMING.beforeEndDelay);
+      }, delay + 800);
+    }, TIMING.nameFadeDuration);
+  }
+
+  // Плавная автопрокрутка вниз к новым строкам
+  function autoScroll() {
+    setTimeout(() => {
+      nameScreen.scrollTo({
+        top: nameScreen.scrollHeight,
+        behavior: 'smooth'
+      });
+    }, 100);
+  }
+
+  function showTheEnd() {
+    nameScreen.classList.remove('active');
+    setTimeout(() => { theEnd.classList.add('active'); }, 1200);
+  }
+
+  setTimeout(runCountdown, 500);
+</script>
+</body>
+</html>
